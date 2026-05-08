@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>⚽ Турнирный редактор</title>
+    <style>
+        /* Переменные для тёмной темы (по умолчанию) */
+        :root {
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --bg-side: #334155;
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            --glow: 0 0 12px rgba(59, 130, 246, 0.4);
+            --gradient-start: #0f172a;
+            --gradient-end: #1e1b4b;
+            --select-bg: #0f172a;
+            --card-hover: rgba(51, 65, 85, 0.8);
+        }
+
+        /* Светлая тема */
+        [data-theme="light"] {
+            --bg-dark: #f8fafc;
+            --bg-card: #ffffff;
+            --bg-side: #e2e8f0;
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+            --glow: 0 0 12px rgba(59, 130, 246, 0.2);
+            --gradient-start: #f0f9ff;
+            --gradient-end: #e0e7ff;
+            --select-bg: #ffffff;
+            --card-hover: rgba(226, 232, 240, 0.8);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+            min-height: 100vh;
+            padding: 20px;
+            transition: background 0.3s ease;
+        }
+
+        /* Анимации */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-3px); }
+            75% { transform: translateX(3px); }
+        }
+
+        @keyframes glowPulse {
+            0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+            50% { box-shadow: 0 0 0 12px rgba(34, 197, 94, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-15px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes rotateIcon {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            animation: fadeInUp 0.4s ease;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: 24px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        /* Header */
+        .header {
+            padding: 16px 24px;
+            background: linear-gradient(135deg, rgba(var(--bg-side-rgb), 0.95) 0%, rgba(var(--bg-card-rgb), 0.95) 100%);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .title-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* Кнопка-переключатель темы */
+        .theme-emoji-btn {
+            background: var(--bg-side);
+            border: 2px solid var(--border);
+            border-radius: 60px;
+            width: 32px;
+            height: 32px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow);
+        }
+
+        .theme-emoji-btn:hover {
+            transform: scale(1.05) rotate(5deg);
+            border-color: var(--primary);
+            box-shadow: var(--glow);
+        }
+
+        .theme-emoji-btn:active {
+            transform: scale(0.95);
+        }
+
+        .theme-emoji-btn .emoji {
+            transition: transform 0.3s ease;
+        }
+
+        .theme-emoji-btn:hover .emoji {
+            animation: rotateIcon 0.4s ease;
+        }
+
+        .title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .btn {
+            padding: 8px 18px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.3s, height 0.3s;
+        }
+
+        .btn:active::after {
+            width: 200px;
+            height: 200px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        /* Табы таблиц */
+        .table-list {
+            padding: 12px 24px;
+            background: rgba(var(--bg-dark-rgb), 0.5);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .table-tab {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            background: var(--bg-side);
+            border-radius: 10px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+        }
+
+        .table-tab:hover {
+            transform: translateY(-1px);
+            border-color: var(--primary);
+        }
+
+        .table-tab.active {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border-color: transparent;
+            animation: pulse 0.2s ease;
+        }
+
+        .table-tab .delete-table {
+            background: none;
+            border: none;
+            color: inherit;
+            cursor: pointer;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+            font-size: 1rem;
+            padding: 0 4px;
+        }
+
+        .table-tab .delete-table:hover {
+            opacity: 1;
+        }
+
+        /* Листы */
+        .sheet-section {
+            padding: 12px 24px;
+            background: rgba(var(--bg-dark-rgb), 0.3);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sheet-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .sheet-btn {
+            padding: 5px 12px;
+            background: var(--bg-side);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--text-muted);
+        }
+
+        .sheet-btn:hover {
+            transform: translateY(-1px);
+            border-color: var(--primary);
+        }
+
+        .sheet-btn.active {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border-color: transparent;
+            animation: fadeInUp 0.2s ease;
+        }
+
+        /* Контент */
+        .content {
+            padding: 20px 24px;
+        }
+
+        /* Синхронизация */
+        .sync-btn {
+            width: 100%;
+            padding: 10px;
+            background: var(--bg-side);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 20px;
+        }
+
+        .sync-btn:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            transform: translateY(-1px);
+        }
+
+        .sync-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* Выбор команд */
+        .teams-row {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .team-card {
+            flex: 1;
+            background: rgba(var(--bg-side-rgb), 0.5);
+            border-radius: 14px;
+            padding: 12px;
+            transition: all 0.2s ease;
+            animation: slideIn 0.3s ease;
+        }
+
+        .team-card:hover {
+            background: var(--card-hover);
+            transform: translateY(-2px);
+        }
+
+        .team-card h3 {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .team-card select {
+            width: 100%;
+            padding: 8px 12px;
+            background: var(--select-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-main);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .team-card select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: var(--glow);
+        }
+
+        /* Блоки счёта */
+        .scores-row {
+            display: flex;
+            gap: 16px;
+        }
+
+        .score-card {
+            flex: 1;
+            background: linear-gradient(135deg, rgba(var(--bg-side-rgb), 0.6), rgba(var(--bg-card-rgb), 0.8));
+            border-radius: 16px;
+            padding: 14px;
+            text-align: center;
+            border: 1px solid var(--border);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .score-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--primary);
+            box-shadow: var(--glow);
+        }
+
+        .score-card.goal-scored {
+            animation: glowPulse 0.3s ease;
+        }
+
+        /* Эффект волны при голе */
+        .score-card::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: radial-gradient(circle, rgba(34, 197, 94, 0.3) 0%, rgba(34, 197, 94, 0) 70%);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.3s, height 0.3s;
+            pointer-events: none;
+        }
+
+        .score-card.goal-scored::before {
+            width: 200%;
+            height: 200%;
+        }
+
+        .team-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 12px;
+            transition: all 0.2s;
+        }
+
+        .team-badge.empty {
+            background: var(--bg-side);
+            color: var(--text-muted);
+        }
+
+        .score-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .goal-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            font-size: 1.3rem;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .goal-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.2s, height 0.2s;
+        }
+
+        .goal-btn:active::before {
+            width: 100px;
+            height: 100px;
+        }
+
+        .goal-btn:active {
+            transform: scale(0.88);
+        }
+
+        .goal-btn.minus {
+            background: linear-gradient(135deg, var(--danger), #b91c1c);
+            color: white;
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+        }
+
+        .goal-btn.plus {
+            background: linear-gradient(135deg, var(--success), #16a34a);
+            color: white;
+            box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
+        }
+
+        .goal-btn.plus:active {
+            animation: bounce 0.15s ease;
+        }
+
+        .goal-btn.minus:active {
+            animation: shake 0.15s ease;
+        }
+
+        .score-value {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--text-main);
+            min-width: 55px;
+            transition: all 0.1s ease;
+        }
+
+        .score-value.changed {
+            animation: pulse 0.2s ease;
+        }
+
+        /* Статус */
+        .status {
+            margin: 16px 24px 20px;
+            padding: 10px 16px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+
+        .status.success {
+            background: rgba(34, 197, 94, 0.2);
+            color: #4ade80;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            animation: fadeInUp 0.2s ease;
+        }
+
+        .status.error {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            animation: shake 0.3s ease;
+        }
+
+        .status.loading {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        /* Анимация загрузки */
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(245, 158, 11, 0.3);
+            border-radius: 50%;
+            border-top-color: #fbbf24;
+            animation: spin 0.6s linear infinite;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+
+        /* Модалка */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 20px;
+            animation: fadeInUp 0.2s ease;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            border-radius: 24px;
+            padding: 24px;
+            max-width: 480px;
+            width: 100%;
+            border: 1px solid var(--border);
+            animation: fadeInUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .modal-content h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text-main);
+        }
+
+        .modal-content input,
+        .modal-content textarea {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 0.875rem;
+            color: var(--text-main);
+            margin-bottom: 12px;
+            transition: all 0.2s;
+        }
+
+        .modal-content input:focus,
+        .modal-content textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: var(--glow);
+        }
+
+        .help-text {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            background: rgba(var(--bg-dark-rgb), 0.5);
+            padding: 12px;
+            border-radius: 10px;
+            margin: 12px 0;
+            line-height: 1.5;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .modal-buttons button {
+            flex: 1;
+        }
+
+        .empty-tables {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+        }
+
+        @media (max-width: 560px) {
+            body { padding: 12px; }
+            .teams-row, .scores-row { flex-direction: column; gap: 12px; }
+            .header { flex-direction: column; text-align: center; }
+            .title-wrapper { justify-content: center; }
+            .btn-primary { width: 100%; justify-content: center; }
+        }
+
+        :root {
+            --bg-dark-rgb: 15, 23, 42;
+            --bg-card-rgb: 30, 41, 59;
+            --bg-side-rgb: 51, 65, 85;
+        }
+
+        [data-theme="light"] {
+            --bg-dark-rgb: 248, 250, 252;
+            --bg-card-rgb: 255, 255, 255;
+            --bg-side-rgb: 226, 232, 240;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card">
+        <div class="header">
+            <div class="title-wrapper">
+                <button class="theme-emoji-btn" id="themeToggle" onclick="toggleTheme()">
+                    <span class="emoji" id="themeEmoji">🌙</span>
+                </button>
+                <h1 class="title">Турнирный редактор</h1>
+            </div>
+            <button class="btn btn-primary" onclick="showAddTableModal()">
+                ➕ Подключить таблицу
+            </button>
+        </div>
+
+        <div id="tableList" class="table-list"></div>
+
+        <div id="sheetSelector" style="display: none;">
+            <div class="sheet-section">
+                <div class="sheet-buttons" id="sheetButtons"></div>
+            </div>
+        </div>
+
+        <div id="editorPanel" style="display: none;">
+            <div class="content">
+                <button class="sync-btn" onclick="loadCurrentTable()">
+                    🔄 Синхронизировать
+                </button>
+
+                <div class="teams-row">
+                    <div class="team-card">
+                        <h3>🏆 Команда 1 (столбец D)</h3>
+                        <select id="team1Select"></select>
+                    </div>
+                    <div class="team-card">
+                        <h3>🏆 Команда 2 (столбец E)</h3>
+                        <select id="team2Select"></select>
+                    </div>
+                </div>
+
+                <div class="scores-row">
+                    <div class="score-card" id="scoreCard1">
+                        <span class="team-badge" id="team1NameBadge">—</span>
+                        <div class="score-controls">
+                            <button class="goal-btn minus" onclick="changeGoals(1, -1)">−</button>
+                            <span class="score-value" id="goals1">0</span>
+                            <button class="goal-btn plus" onclick="changeGoals(1, 1)">+</button>
+                        </div>
+                    </div>
+                    <div class="score-card" id="scoreCard2">
+                        <span class="team-badge" id="team2NameBadge">—</span>
+                        <div class="score-controls">
+                            <button class="goal-btn minus" onclick="changeGoals(2, -1)">−</button>
+                            <span class="score-value" id="goals2">0</span>
+                            <button class="goal-btn plus" onclick="changeGoals(2, 1)">+</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="status" class="status loading">📥 Загрузка...</div>
+    </div>
+</div>
+
+<div id="tableModal" class="modal">
+    <div class="modal-content">
+        <h3>➕ Подключить таблицу</h3>
+        <input type="text" id="tableName" placeholder="Название турнира">
+        <textarea id="tableUrl" rows="3" placeholder="Ссылка на Apps Script веб-приложение"></textarea>
+        <div class="help-text">
+            💡 <strong>Как получить ссылку:</strong><br>
+            1. Откройте таблицу → Расширения → Apps Script<br>
+            2. Вставьте код скрипта<br>
+            3. Разверните → Новое развертывание → Веб-приложение<br>
+            4. Скопируйте URL (заканчивается на /exec)
+        </div>
+        <div class="modal-buttons">
+            <button class="btn btn-primary" onclick="saveTable()">💾 Сохранить</button>
+            <button class="btn" style="background: var(--bg-side); color: var(--text-muted);" onclick="closeModal()">Отмена</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let tables = [];
+    let currentTableId = null;
+    let currentSheet = '';
+    let allSheets = [];
+    let currentData = {
+        team1: '', team2: '', goals1: 0, goals2: 0,
+        teamsD: [], teamsE: []
+    };
+    
+    let dataCache = null;
+    let lastFetchTime = 0;
+    const CACHE_TTL = 5000;
+    let saveTimeout = null;
+    
+    function toggleTheme() {
+        const html = document.documentElement;
+        const currentTheme = html.getAttribute('data-theme');
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        
+        const btn = document.getElementById('themeToggle');
+        btn.classList.add('theme-changing');
+        
+        html.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        
+        const emoji = document.getElementById('themeEmoji');
+        
+        if (newTheme === 'light') {
+            emoji.textContent = '☀️';
+        } else {
+            emoji.textContent = '🌙';
+        }
+        
+        // Плавная анимация для body
+        document.body.style.animation = 'none';
+        setTimeout(() => {
+            document.body.style.animation = 'themeSwitch 0.3s ease';
+        }, 10);
+        setTimeout(() => {
+            document.body.style.animation = '';
+            btn.classList.remove('theme-changing');
+        }, 300);
+    }
+
+    function loadTheme() {
+        const savedTheme = localStorage.getItem('theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+        
+        document.documentElement.setAttribute('data-theme', theme);
+        
+        const emoji = document.getElementById('themeEmoji');
+        
+        if (theme === 'light') {
+            emoji.textContent = '☀️';
+        } else {
+            emoji.textContent = '🌙';
+        }
+    }
+
+    function loadTables() {
+        const saved = localStorage.getItem('connected_tables');
+        if (saved) {
+            tables = JSON.parse(saved);
+        }
+        renderTableList();
+        if (tables.length > 0 && !currentTableId) {
+            currentTableId = tables[0].id;
+            loadCurrentTable();
+        } else if (tables.length === 0) {
+            document.getElementById('status').innerHTML = '💡 Нажмите "Подключить таблицу"';
+            document.getElementById('status').className = 'status';
+            document.getElementById('sheetSelector').style.display = 'none';
+            document.getElementById('editorPanel').style.display = 'none';
+        }
+    }
+
+    function saveTables() {
+        localStorage.setItem('connected_tables', JSON.stringify(tables));
+        renderTableList();
+    }
+
+    function renderTableList() {
+        const container = document.getElementById('tableList');
+        container.innerHTML = '';
+
+        if (tables.length === 0) {
+            container.innerHTML = '<div class="empty-tables">📭 Нет подключённых таблиц</div>';
+            return;
+        }
+
+        tables.forEach(table => {
+            const tab = document.createElement('div');
+            tab.className = 'table-tab';
+            if (table.id === currentTableId) tab.classList.add('active');
+
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = table.name;
+            nameSpan.style.cursor = 'pointer';
+            nameSpan.onclick = () => {
+                currentTableId = table.id;
+                dataCache = null;
+                renderTableList();
+                loadCurrentTable();
+            };
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = '✕';
+            deleteBtn.className = 'delete-table';
+            deleteBtn.onclick = (e) => {
+                e.stopPropagation();
+                if (confirm(`Удалить таблицу "${table.name}"?`)) {
+                    tables = tables.filter(t => t.id !== table.id);
+                    if (currentTableId === table.id) {
+                        currentTableId = tables.length > 0 ? tables[0].id : null;
+                        if (currentTableId) loadCurrentTable();
+                        else {
+                            document.getElementById('sheetSelector').style.display = 'none';
+                            document.getElementById('editorPanel').style.display = 'none';
+                            document.getElementById('status').innerHTML = '💡 Нажмите "Подключить таблицу"';
+                        }
+                    }
+                    saveTables();
+                }
+            };
+
+            tab.appendChild(nameSpan);
+            tab.appendChild(deleteBtn);
+            container.appendChild(tab);
+        });
+    }
+
+    function showAddTableModal() {
+        document.getElementById('tableName').value = '';
+        document.getElementById('tableUrl').value = '';
+        document.getElementById('tableModal').style.display = 'flex';
+    }
+
+    function closeModal() {
+        document.getElementById('tableModal').style.display = 'none';
+    }
+
+    function saveTable() {
+        const name = document.getElementById('tableName').value.trim();
+        let url = document.getElementById('tableUrl').value.trim();
+
+        if (!name || !url) {
+            showStatus('❌ Заполните все поля', 'error');
+            return;
+        }
+
+        if (url.includes('docs.google.com/spreadsheets')) {
+            showStatus('❌ Нужна ссылка на Apps Script', 'error');
+            return;
+        }
+
+        if (!url.endsWith('/exec')) {
+            if (url.endsWith('/')) url = url.slice(0, -1);
+            if (!url.endsWith('exec')) url = url + '/exec';
+        }
+
+        const newTable = {
+            id: Date.now().toString(),
+            name: name,
+            url: url
+        };
+
+        tables.push(newTable);
+        saveTables();
+        closeModal();
+
+        if (!currentTableId) {
+            currentTableId = newTable.id;
+            loadCurrentTable();
+        }
+
+        showStatus(`✅ Таблица "${name}" добавлена`, 'success');
+    }
+
+    let statusTimeout = null;
+    function showStatus(msg, type = 'success') {
+        const statusDiv = document.getElementById('status');
+        statusDiv.textContent = msg;
+        statusDiv.className = `status ${type}`;
+        
+        if (statusTimeout) clearTimeout(statusTimeout);
+        
+        if (type === 'success') {
+            statusTimeout = setTimeout(() => {
+                if (statusDiv.textContent === msg) {
+                    statusDiv.className = 'status';
+                    statusDiv.textContent = '✅ Готово';
+                }
+            }, 1500);
+        }
+    }
+
+    async function loadCurrentTable(forceRefresh = false) {
+        const currentTable = tables.find(t => t.id === currentTableId);
+        if (!currentTable) return;
+
+        const now = Date.now();
+        if (!forceRefresh && dataCache && (now - lastFetchTime) < CACHE_TTL) {
+            applyData(dataCache);
+            showStatus(`✅ Данные из кеша`, 'success');
+            return;
+        }
+
+        showStatus(`📡 Загрузка...`, 'loading');
+        document.getElementById('editorPanel').style.display = 'block';
+
+        try {
+            const url = `${currentTable.url}?_=${now}`;
+            const response = await fetch(url);
+            const result = await response.json();
+
+            allSheets = result.sheets || [];
+            if (allSheets.length === 0) {
+                showStatus('❌ В таблице нет листов', 'error');
+                return;
+            }
+
+            document.getElementById('sheetSelector').style.display = 'block';
+            renderSheetButtons();
+
+            if (!currentSheet || !allSheets.includes(currentSheet)) {
+                currentSheet = allSheets[0];
+            }
+
+            if (result.data && result.data[currentSheet]) {
+                const data = result.data[currentSheet];
+                dataCache = data;
+                lastFetchTime = now;
+                applyData(data);
+                showStatus(`✅ Данные загружены`, 'success');
+            } else {
+                showStatus('⚠️ Данные не найдены', 'error');
+            }
+        } catch (error) {
+            console.error('Ошибка:', error);
+            showStatus('❌ Ошибка загрузки!', 'error');
+        }
+    }
+
+    function applyData(data) {
+        currentData = {
+            team1: data.team1 || '',
+            team2: data.team2 || '',
+            goals1: data.goals1 || 0,
+            goals2: data.goals2 || 0,
+            teamsD: data.teamsD || [],
+            teamsE: data.teamsE || []
+        };
+        updateUI();
+        updateTeamBadges();
+    }
+
+    function renderSheetButtons() {
+        const container = document.getElementById('sheetButtons');
+        container.innerHTML = '';
+        
+        allSheets.forEach(sheet => {
+            const btn = document.createElement('button');
+            btn.textContent = sheet;
+            btn.className = 'sheet-btn';
+            if (sheet === currentSheet) btn.classList.add('active');
+            btn.onclick = () => {
+                currentSheet = sheet;
+                dataCache = null;
+                renderSheetButtons();
+                loadCurrentTable(true);
+            };
+            container.appendChild(btn);
+        });
+    }
+
+    function updateUI() {
+        const team1Select = document.getElementById('team1Select');
+        const team2Select = document.getElementById('team2Select');
+
+        team1Select.innerHTML = '';
+        if (currentData.teamsD.length === 0) {
+            const option = document.createElement('option');
+            option.textContent = '📌 Нет команд';
+            option.disabled = true;
+            team1Select.appendChild(option);
+        } else {
+            currentData.teamsD.forEach(team => {
+                const option = document.createElement('option');
+                option.value = team;
+                option.textContent = team;
+                if (team === currentData.team1) option.selected = true;
+                team1Select.appendChild(option);
+            });
+        }
+
+        team2Select.innerHTML = '';
+        if (currentData.teamsE.length === 0) {
+            const option = document.createElement('option');
+            option.textContent = '📌 Нет команд';
+            option.disabled = true;
+            team2Select.appendChild(option);
+        } else {
+            currentData.teamsE.forEach(team => {
+                const option = document.createElement('option');
+                option.value = team;
+                option.textContent = team;
+                if (team === currentData.team2) option.selected = true;
+                team2Select.appendChild(option);
+            });
+        }
+
+        document.getElementById('goals1').textContent = currentData.goals1;
+        document.getElementById('goals2').textContent = currentData.goals2;
+    }
+
+    function updateTeamBadges() {
+        const team1Badge = document.getElementById('team1NameBadge');
+        const team2Badge = document.getElementById('team2NameBadge');
+
+        if (currentData.team1 && currentData.team1 !== '') {
+            team1Badge.textContent = currentData.team1;
+            team1Badge.className = 'team-badge';
+        } else {
+            team1Badge.textContent = '❌ Не выбрана';
+            team1Badge.className = 'team-badge empty';
+        }
+
+        if (currentData.team2 && currentData.team2 !== '') {
+            team2Badge.textContent = currentData.team2;
+            team2Badge.className = 'team-badge';
+        } else {
+            team2Badge.textContent = '❌ Не выбрана';
+            team2Badge.className = 'team-badge empty';
+        }
+    }
+
+    function debouncedSave() {
+        if (saveTimeout) clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(() => {
+            saveToSheet();
+        }, 300);
+    }
+
+    async function saveToSheet() {
+        const currentTable = tables.find(t => t.id === currentTableId);
+        if (!currentTable) return;
+
+        try {
+            fetch(currentTable.url, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sheet: currentSheet,
+                    team1: currentData.team1,
+                    team2: currentData.team2,
+                    goals1: currentData.goals1,
+                    goals2: currentData.goals2
+                })
+            }).catch(e => console.log('Save error:', e));
+            
+            const statusDiv = document.getElementById('status');
+            const originalText = statusDiv.textContent;
+            statusDiv.innerHTML = '💾 Сохранено';
+            statusDiv.className = 'status success';
+            setTimeout(() => {
+                if (statusDiv.innerHTML === '💾 Сохранено') {
+                    statusDiv.textContent = originalText;
+                    statusDiv.className = 'status';
+                }
+            }, 600);
+        } catch (error) {
+            console.error('Ошибка:', error);
+        }
+    }
+
+    function animateScoreChange(team) {
+        const scoreSpan = document.getElementById(`goals${team}`);
+        scoreSpan.classList.add('changed');
+        setTimeout(() => scoreSpan.classList.remove('changed'), 200);
+
+        const card = document.getElementById(`scoreCard${team}`);
+        card.classList.add('goal-scored');
+        setTimeout(() => card.classList.remove('goal-scored'), 300);
+    }
+
+    function changeGoals(team, delta) {
+        if (team === 1) {
+            const newValue = Math.max(0, currentData.goals1 + delta);
+            if (newValue !== currentData.goals1) {
+                currentData.goals1 = newValue;
+                document.getElementById('goals1').textContent = currentData.goals1;
+                animateScoreChange(1);
+                debouncedSave();
+            }
+        } else {
+            const newValue = Math.max(0, currentData.goals2 + delta);
+            if (newValue !== currentData.goals2) {
+                currentData.goals2 = newValue;
+                document.getElementById('goals2').textContent = currentData.goals2;
+                animateScoreChange(2);
+                debouncedSave();
+            }
+        }
+    }
+
+    document.getElementById('team1Select').onchange = (e) => {
+        currentData.team1 = e.target.value;
+        updateTeamBadges();
+        debouncedSave();
+    };
+
+    document.getElementById('team2Select').onchange = (e) => {
+        currentData.team2 = e.target.value;
+        updateTeamBadges();
+        debouncedSave();
+    };
+
+    loadTheme();
+    loadTables();
+</script>
+</body>
+</html>
