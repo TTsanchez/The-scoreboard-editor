@@ -802,45 +802,19 @@
         const currentTheme = html.getAttribute('data-theme');
         const newTheme = currentTheme === 'light' ? 'dark' : 'light';
         
-        const btn = document.getElementById('themeToggle');
-        btn.classList.add('theme-changing');
-        
         html.setAttribute('data-theme', newTheme);
         localStorage.setItem('theme', newTheme);
         
         const emoji = document.getElementById('themeEmoji');
-        
-        if (newTheme === 'light') {
-            emoji.textContent = '☀️';
-        } else {
-            emoji.textContent = '🌙';
-        }
-        
-        // Плавная анимация для body
-        document.body.style.animation = 'none';
-        setTimeout(() => {
-            document.body.style.animation = 'themeSwitch 0.3s ease';
-        }, 10);
-        setTimeout(() => {
-            document.body.style.animation = '';
-            btn.classList.remove('theme-changing');
-        }, 300);
+        emoji.textContent = newTheme === 'light' ? '☀️' : '🌙';
     }
 
     function loadTheme() {
         const savedTheme = localStorage.getItem('theme');
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         const theme = savedTheme || (prefersDark ? 'dark' : 'light');
-        
         document.documentElement.setAttribute('data-theme', theme);
-        
-        const emoji = document.getElementById('themeEmoji');
-        
-        if (theme === 'light') {
-            emoji.textContent = '☀️';
-        } else {
-            emoji.textContent = '🌙';
-        }
+        document.getElementById('themeEmoji').textContent = theme === 'light' ? '☀️' : '🌙';
     }
 
     function loadTables() {
@@ -965,21 +939,22 @@
     let statusTimeout = null;
     function showStatus(msg, type = 'success') {
         const statusDiv = document.getElementById('status');
-        statusDiv.textContent = msg;
+        statusDiv.innerHTML = msg;
         statusDiv.className = `status ${type}`;
         
         if (statusTimeout) clearTimeout(statusTimeout);
         
         if (type === 'success') {
             statusTimeout = setTimeout(() => {
-                if (statusDiv.textContent === msg) {
+                if (statusDiv.innerHTML === msg) {
                     statusDiv.className = 'status';
-                    statusDiv.textContent = '✅ Готово';
+                    statusDiv.innerHTML = '✅ Готово';
                 }
             }, 1500);
         }
     }
 
+    // ГЛАВНОЕ ИЗМЕНЕНИЕ ЗДЕСЬ - берем только первые 3 листа
     async function loadCurrentTable(forceRefresh = false) {
         const currentTable = tables.find(t => t.id === currentTableId);
         if (!currentTable) return;
@@ -999,7 +974,10 @@
             const response = await fetch(url);
             const result = await response.json();
 
-            allSheets = result.sheets || [];
+            // Берём ТОЛЬКО ПЕРВЫЕ 3 листа
+            const allSheetsRaw = result.sheets || [];
+            allSheets = allSheetsRaw.slice(0, 3);
+            
             if (allSheets.length === 0) {
                 showStatus('❌ В таблице нет листов', 'error');
                 return;
@@ -1017,7 +995,7 @@
                 dataCache = data;
                 lastFetchTime = now;
                 applyData(data);
-                showStatus(`✅ Данные загружены`, 'success');
+                showStatus(`✅ Данные загружены (${allSheets.length} лист(ов))`, 'success');
             } else {
                 showStatus('⚠️ Данные не найдены', 'error');
             }
@@ -1146,12 +1124,12 @@
             }).catch(e => console.log('Save error:', e));
             
             const statusDiv = document.getElementById('status');
-            const originalText = statusDiv.textContent;
+            const originalText = statusDiv.innerHTML;
             statusDiv.innerHTML = '💾 Сохранено';
             statusDiv.className = 'status success';
             setTimeout(() => {
                 if (statusDiv.innerHTML === '💾 Сохранено') {
-                    statusDiv.textContent = originalText;
+                    statusDiv.innerHTML = originalText;
                     statusDiv.className = 'status';
                 }
             }, 600);
