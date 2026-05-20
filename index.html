@@ -5,6 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>⚽ Турнирный редактор</title>
     <style>
+	* {
+            touch-action: manipulation; /* Улучшает отклик на касания */
+        }
+        
+        button, select, .btn, .goal-btn, .theme-emoji-btn, .sync-btn {
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        /* Запрещаем выделение текста при быстрых нажатиях */
+        .no-select {
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            touch-action: pan-x pan-y; /* Разрешаем прокрутку, но не масштабирование двойным тапом */
+        }
         /* Переменные для тёмной темы (по умолчанию) */
         :root {
             --bg-dark: #0f172a;
@@ -789,13 +807,15 @@
     let allSheets = [];
     let currentData = {
         team1: '', team2: '', goals1: 0, goals2: 0,
-        teamsD: [], teamsE: []
+        teamsD: [], teamsE: [],
+        team1Display: '', team2Display: ''  // НОВЫЕ ПОЛЯ для A1 и B1
     };
     
     let dataCache = null;
     let lastFetchTime = 0;
     const CACHE_TTL = 5000;
     let saveTimeout = null;
+    let isFirstLoad = true;
     
     function toggleTheme() {
         const html = document.documentElement;
@@ -825,7 +845,7 @@
         renderTableList();
         if (tables.length > 0 && !currentTableId) {
             currentTableId = tables[0].id;
-            loadCurrentTable();
+            loadCurrentTable(true); // Принудительная загрузка
         } else if (tables.length === 0) {
             document.getElementById('status').innerHTML = '💡 Нажмите "Подключить таблицу"';
             document.getElementById('status').className = 'status';
@@ -860,7 +880,7 @@
                 currentTableId = table.id;
                 dataCache = null;
                 renderTableList();
-                loadCurrentTable();
+                loadCurrentTable(true);
             };
 
             const deleteBtn = document.createElement('button');
@@ -872,7 +892,7 @@
                     tables = tables.filter(t => t.id !== table.id);
                     if (currentTableId === table.id) {
                         currentTableId = tables.length > 0 ? tables[0].id : null;
-                        if (currentTableId) loadCurrentTable();
+                        if (currentTableId) loadCurrentTable(true);
                         else {
                             document.getElementById('sheetSelector').style.display = 'none';
                             document.getElementById('editorPanel').style.display = 'none';
@@ -930,7 +950,7 @@
 
         if (!currentTableId) {
             currentTableId = newTable.id;
-            loadCurrentTable();
+            loadCurrentTable(true);
         }
 
         showStatus(`✅ Таблица "${name}" добавлена`, 'success');
@@ -954,18 +974,20 @@
         }
     }
 
-    // ГЛАВНОЕ ИЗМЕНЕНИЕ ЗДЕСЬ - берем только первые 3 листа
     async function loadCurrentTable(forceRefresh = false) {
         const currentTable = tables.find(t => t.id === currentTableId);
         if (!currentTable) return;
 
         const now = Date.now();
-        if (!forceRefresh && dataCache && (now - lastFetchTime) < CACHE_TTL) {
+        
+        if (!forceRefresh && !isFirstLoad && dataCache && (now - lastFetchTime) < CACHE_TTL) {
             applyData(dataCache);
             showStatus(`✅ Данные из кеша`, 'success');
             return;
         }
 
+        isFirstLoad = false;
+        
         showStatus(`📡 Загрузка...`, 'loading');
         document.getElementById('editorPanel').style.display = 'block';
 
@@ -974,7 +996,6 @@
             const response = await fetch(url);
             const result = await response.json();
 
-            // Берём ТОЛЬКО ПЕРВЫЕ 3 листа
             const allSheetsRaw = result.sheets || [];
             allSheets = allSheetsRaw.slice(0, 3);
             
@@ -995,7 +1016,7 @@
                 dataCache = data;
                 lastFetchTime = now;
                 applyData(data);
-                showStatus(`✅ Данные загружены (${allSheets.length} лист(ов))`, 'success');
+                showStatus(`✅ Данные загружены`, 'success');
             } else {
                 showStatus('⚠️ Данные не найдены', 'error');
             }
@@ -1009,6 +1030,8 @@
         currentData = {
             team1: data.team1 || '',
             team2: data.team2 || '',
+            team1Display: data.team1Display || '',  // ИЗ A1
+            team2Display: data.team2Display || '',  // ИЗ B1
             goals1: data.goals1 || 0,
             goals2: data.goals2 || 0,
             teamsD: data.teamsD || [],
@@ -1081,7 +1104,11 @@
         const team1Badge = document.getElementById('team1NameBadge');
         const team2Badge = document.getElementById('team2NameBadge');
 
-        if (currentData.team1 && currentData.team1 !== '') {
+        // ПОКАЗЫВАЕМ из A1 и B1
+        if (currentData.team1Display && currentData.team1Display !== '') {
+            team1Badge.textContent = currentData.team1Display;
+            team1Badge.className = 'team-badge';
+        } else if (currentData.team1 && currentData.team1 !== '') {
             team1Badge.textContent = currentData.team1;
             team1Badge.className = 'team-badge';
         } else {
@@ -1089,7 +1116,10 @@
             team1Badge.className = 'team-badge empty';
         }
 
-        if (currentData.team2 && currentData.team2 !== '') {
+        if (currentData.team2Display && currentData.team2Display !== '') {
+            team2Badge.textContent = currentData.team2Display;
+            team2Badge.className = 'team-badge';
+        } else if (currentData.team2 && currentData.team2 !== '') {
             team2Badge.textContent = currentData.team2;
             team2Badge.className = 'team-badge';
         } else {
@@ -1170,7 +1200,7 @@
 
     document.getElementById('team1Select').onchange = (e) => {
         currentData.team1 = e.target.value;
-        updateTeamBadges();
+        updateTeamBadges(); // Обновляем бейдж (но он покажет team1Display, не team1)
         debouncedSave();
     };
 
