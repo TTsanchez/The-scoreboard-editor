@@ -6,7 +6,7 @@
     <title>⚽ Турнирный редактор</title>
     <style>
 	* {
-            touch-action: manipulation; /* Улучшает отклик на касания */
+            touch-action: manipulation;
         }
         
         button, select, .btn, .goal-btn, .theme-emoji-btn, .sync-btn {
@@ -14,15 +14,15 @@
             -webkit-tap-highlight-color: transparent;
         }
         
-        /* Запрещаем выделение текста при быстрых нажатиях */
         .no-select {
             user-select: none;
             -webkit-tap-highlight-color: transparent;
         }
         
         body {
-            touch-action: pan-x pan-y; /* Разрешаем прокрутку, но не масштабирование двойным тапом */
+            touch-action: pan-x pan-y;
         }
+        
         /* Переменные для тёмной темы (по умолчанию) */
         :root {
             --bg-dark: #0f172a;
@@ -79,7 +79,6 @@
             transition: background 0.3s ease;
         }
 
-        /* Анимации */
         @keyframes fadeInUp {
             from {
                 opacity: 0;
@@ -170,7 +169,6 @@
             gap: 12px;
         }
 
-        /* Кнопка-переключатель темы */
         .theme-emoji-btn {
             background: var(--bg-side);
             border: 2px solid var(--border);
@@ -259,6 +257,17 @@
 
         .btn-primary:active {
             transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: var(--bg-side);
+            color: var(--text-main);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--primary);
+            transform: translateY(-1px);
         }
 
         /* Табы таблиц */
@@ -459,7 +468,6 @@
             animation: glowPulse 0.3s ease;
         }
 
-        /* Эффект волны при голе */
         .score-card::before {
             content: '';
             position: absolute;
@@ -601,7 +609,6 @@
             border: 1px solid rgba(245, 158, 11, 0.3);
         }
 
-        /* Анимация загрузки */
         .loading-spinner {
             display: inline-block;
             width: 16px;
@@ -649,7 +656,8 @@
         }
 
         .modal-content input,
-        .modal-content textarea {
+        .modal-content textarea,
+        .modal-content select {
             width: 100%;
             padding: 10px 12px;
             background: var(--bg-dark);
@@ -662,7 +670,8 @@
         }
 
         .modal-content input:focus,
-        .modal-content textarea:focus {
+        .modal-content textarea:focus,
+        .modal-content select:focus {
             outline: none;
             border-color: var(--primary);
             box-shadow: var(--glow);
@@ -692,6 +701,30 @@
             text-align: center;
             padding: 40px;
             color: var(--text-muted);
+        }
+
+        .settings-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .settings-row label {
+            font-weight: 500;
+            color: var(--text-main);
+        }
+
+        .settings-row input {
+            width: 80px;
+            padding: 6px 10px;
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-main);
+            text-align: center;
         }
 
         @media (max-width: 560px) {
@@ -726,9 +759,14 @@
                 </button>
                 <h1 class="title">Турнирный редактор</h1>
             </div>
-            <button class="btn btn-primary" onclick="showAddTableModal()">
-                ➕ Подключить таблицу
-            </button>
+            <div style="display: flex; gap: 8px;">
+                <button class="btn btn-secondary" onclick="showSettingsModal()">
+                    ⚙️ Настройки
+                </button>
+                <button class="btn btn-primary" onclick="showAddTableModal()">
+                    ➕ Подключить таблицу
+                </button>
+            </div>
         </div>
 
         <div id="tableList" class="table-list"></div>
@@ -800,6 +838,24 @@
     </div>
 </div>
 
+<div id="settingsModal" class="modal">
+    <div class="modal-content">
+        <h3>⚙️ Настройки</h3>
+        <div class="settings-row">
+            <label>📊 Количество отображаемых листов:</label>
+            <input type="number" id="sheetsLimit" min="1" max="50" value="3">
+        </div>
+        <div class="help-text">
+            💡 Укажите, сколько листов (вкладок) таблицы отображать в интерфейсе.<br>
+            По умолчанию: 3. Максимум: 50.
+        </div>
+        <div class="modal-buttons">
+            <button class="btn btn-primary" onclick="saveSettings()">💾 Сохранить</button>
+            <button class="btn" style="background: var(--bg-side); color: var(--text-muted);" onclick="closeSettingsModal()">Отмена</button>
+        </div>
+    </div>
+</div>
+
 <script>
     let tables = [];
     let currentTableId = null;
@@ -808,7 +864,7 @@
     let currentData = {
         team1: '', team2: '', goals1: 0, goals2: 0,
         teamsD: [], teamsE: [],
-        team1Display: '', team2Display: ''  // НОВЫЕ ПОЛЯ для A1 и B1
+        team1Display: '', team2Display: ''
     };
     
     let dataCache = null;
@@ -816,6 +872,7 @@
     const CACHE_TTL = 5000;
     let saveTimeout = null;
     let isFirstLoad = true;
+    let sheetsLimit = 3; // Настройка: количество отображаемых листов
     
     function toggleTheme() {
         const html = document.documentElement;
@@ -837,6 +894,44 @@
         document.getElementById('themeEmoji').textContent = theme === 'light' ? '☀️' : '🌙';
     }
 
+    function loadSettings() {
+        const savedLimit = localStorage.getItem('sheets_limit');
+        if (savedLimit) {
+            sheetsLimit = parseInt(savedLimit);
+            if (isNaN(sheetsLimit) || sheetsLimit < 1) sheetsLimit = 3;
+            if (sheetsLimit > 50) sheetsLimit = 50;
+        }
+    }
+
+    function saveSettings() {
+        const limitInput = document.getElementById('sheetsLimit');
+        let newLimit = parseInt(limitInput.value);
+        
+        if (isNaN(newLimit) || newLimit < 1) newLimit = 3;
+        if (newLimit > 50) newLimit = 50;
+        
+        sheetsLimit = newLimit;
+        localStorage.setItem('sheets_limit', sheetsLimit);
+        
+        closeSettingsModal();
+        showStatus(`✅ Настройки сохранены (листов: ${sheetsLimit})`, 'success');
+        
+        // Перезагружаем текущую таблицу с новым лимитом
+        if (currentTableId) {
+            dataCache = null;
+            loadCurrentTable(true);
+        }
+    }
+
+    function showSettingsModal() {
+        document.getElementById('sheetsLimit').value = sheetsLimit;
+        document.getElementById('settingsModal').style.display = 'flex';
+    }
+
+    function closeSettingsModal() {
+        document.getElementById('settingsModal').style.display = 'none';
+    }
+
     function loadTables() {
         const saved = localStorage.getItem('connected_tables');
         if (saved) {
@@ -845,7 +940,7 @@
         renderTableList();
         if (tables.length > 0 && !currentTableId) {
             currentTableId = tables[0].id;
-            loadCurrentTable(true); // Принудительная загрузка
+            loadCurrentTable(true);
         } else if (tables.length === 0) {
             document.getElementById('status').innerHTML = '💡 Нажмите "Подключить таблицу"';
             document.getElementById('status').className = 'status';
@@ -997,7 +1092,8 @@
             const result = await response.json();
 
             const allSheetsRaw = result.sheets || [];
-            allSheets = allSheetsRaw.slice(0, 3);
+            // ПРИМЕНЯЕМ НАСТРОЙКУ - показываем указанное количество листов
+            allSheets = allSheetsRaw.slice(0, sheetsLimit);
             
             if (allSheets.length === 0) {
                 showStatus('❌ В таблице нет листов', 'error');
@@ -1030,8 +1126,8 @@
         currentData = {
             team1: data.team1 || '',
             team2: data.team2 || '',
-            team1Display: data.team1Display || '',  // ИЗ A1
-            team2Display: data.team2Display || '',  // ИЗ B1
+            team1Display: data.team1Display || '',
+            team2Display: data.team2Display || '',
             goals1: data.goals1 || 0,
             goals2: data.goals2 || 0,
             teamsD: data.teamsD || [],
@@ -1104,7 +1200,6 @@
         const team1Badge = document.getElementById('team1NameBadge');
         const team2Badge = document.getElementById('team2NameBadge');
 
-        // ПОКАЗЫВАЕМ из A1 и B1
         if (currentData.team1Display && currentData.team1Display !== '') {
             team1Badge.textContent = currentData.team1Display;
             team1Badge.className = 'team-badge';
@@ -1200,7 +1295,7 @@
 
     document.getElementById('team1Select').onchange = (e) => {
         currentData.team1 = e.target.value;
-        updateTeamBadges(); // Обновляем бейдж (но он покажет team1Display, не team1)
+        updateTeamBadges();
         debouncedSave();
     };
 
@@ -1210,6 +1305,8 @@
         debouncedSave();
     };
 
+    // Загружаем настройки при старте
+    loadSettings();
     loadTheme();
     loadTables();
 </script>
